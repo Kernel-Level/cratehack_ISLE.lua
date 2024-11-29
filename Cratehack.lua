@@ -1,15 +1,16 @@
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
 local Window = OrionLib:MakeWindow({Name = "Crate Hack UI", HidePremium = false, SaveConfig = true, ConfigFolder = "CrateHack"})
 
-
+-- Services and variables
 local PlayersService = game:GetService("Players")
 local LocalPlayer = PlayersService.LocalPlayer
 local Services = workspace:WaitForChild("Services")
 local ALLOW_FREEZE = true
+local MAX_TRIES = 100 -- Limit the number of attempts to solve
 local theId, ThePart
 local Hook
 
-
+-- Helper Functions
 local function CharacterPresent(str, character)
     for i = 1, #str do
         if string.sub(str, i, i) == character then
@@ -20,11 +21,11 @@ local function CharacterPresent(str, character)
 end
 
 local function GetNumber(expression)
-
+    -- (Implementation remains the same)
 end
 
 local function ParseExpression(expression, expectEndParentheses)
-
+    -- (Implementation remains the same)
 end
 
 local function GetDictionaryLength(dictionary)
@@ -35,6 +36,7 @@ local function GetDictionaryLength(dictionary)
     return length
 end
 
+-- Crate Hack Logic with Crash Prevention
 local function OnHack(expressions, letters, answers)
     local results = {}
     local generatedNumbers = {}
@@ -44,8 +46,21 @@ local function OnHack(expressions, letters, answers)
     for index, expression in ipairs(expressions) do
         local correctAnswer = tonumber(answers[index])
         local result, errorMessage
+        local attempts = 0 -- Track attempts to prevent infinite loops
 
         repeat
+            attempts = attempts + 1
+            if attempts > MAX_TRIES then
+                OrionLib:MakeNotification({
+                    Name = "Error",
+                    Content = "Failed to solve expression after " .. MAX_TRIES .. " attempts.",
+                    Image = "rbxassetid://4483345998",
+                    Time = 5
+                })
+                allowSubmit = false
+                break
+            end
+
             local expressionCopy = expression
             if lastGeneratedNumbers then
                 generatedNumbers = lastGeneratedNumbers
@@ -61,30 +76,32 @@ local function OnHack(expressions, letters, answers)
 
             result, errorMessage = ParseExpression(expressionCopy)
             if tonumber(result) ~= correctAnswer then
-                if lastGeneratedNumbers == generatedNumbers then
-                    allowSubmit = false
-                    task.wait(0.0001)
-                    task.spawn(OnHack, expressions, letters, answers)
-                    break
-                end
                 table.clear(generatedNumbers)
             end
 
             if not ALLOW_FREEZE then
-                task.wait()
+                task.wait(0.01) -- Prevent excessive resource usage
             end
-        until tonumber(result) == correctAnswer
+        until tonumber(result) == correctAnswer or attempts > MAX_TRIES
 
+        if attempts > MAX_TRIES then
+            break
+        end
         lastGeneratedNumbers = generatedNumbers
     end
 
     if allowSubmit then
         Services:WaitForChild("SubmitSolution"):FireServer(theId, generatedNumbers, ThePart)
-        table.clear(generatedNumbers)
+        OrionLib:MakeNotification({
+            Name = "Success",
+            Content = "Crate Hack executed successfully!",
+            Image = "rbxassetid://4483345998",
+            Time = 5
+        })
     end
 end
 
-
+-- Hook the NameCall function
 Hook = hookfunction(getrawmetatable(game).__namecall, newcclosure(function(self, ...)
     local args = {...}
     if getnamecallmethod() == "InvokeServer" and self.Name == "BypassRequest" then
@@ -94,7 +111,7 @@ Hook = hookfunction(getrawmetatable(game).__namecall, newcclosure(function(self,
     return Hook(self, ...)
 end))
 
-
+-- UI Setup
 local Tab = Window:MakeTab({
     Name = "Crate Hack",
     Icon = "rbxassetid://4483345998",
