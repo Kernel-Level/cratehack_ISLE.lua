@@ -1,2 +1,2 @@
-# Free open sourced crate hack testing v2.1
-enjoy :) - Krypton
+# Beta testing some of my very very secret script!!
+enjoy 
